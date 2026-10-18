@@ -22,6 +22,7 @@ public class CommandResultReceiver extends BroadcastReceiver {
     static void execute(Context context, Consumer<String> callback) {
         String requestId = UUID.randomUUID().toString();
         int requestCode = NEXT_REQUEST_CODE.getAndIncrement();
+
         if (callback != null) {
             CALLBACKS.put(requestId, callback);
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -32,9 +33,11 @@ public class CommandResultReceiver extends BroadcastReceiver {
                 }
             }, 60_000L);
         }
+
         Intent resultIntent = new Intent(context, CommandResultReceiver.class);
         resultIntent.setAction(context.getPackageName() + ".TERMUX_RESULT." + requestId);
         resultIntent.putExtra("requestId", requestId);
+
         PendingIntent resultPendingIntent = PendingIntent.getBroadcast(
                 context, requestCode, resultIntent,
                 PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_MUTABLE);
@@ -42,25 +45,34 @@ public class CommandResultReceiver extends BroadcastReceiver {
         Intent command = new Intent();
         command.setClassName("com.termux", "com.termux.app.RunCommandService");
         command.setAction("com.termux.RUN_COMMAND");
-        command.putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/sh");
-        command.putExtra("com.termux.RUN_COMMAND_WORKDIR", "/data/data/com.termux/files/home");
+        command.putExtra("com.termux.RUN_COMMAND_PATH",
+                "/data/data/com.termux/files/usr/bin/sh");
+        command.putExtra("com.termux.RUN_COMMAND_WORKDIR",
+                "/data/data/com.termux/files/home");
         command.putExtra("com.termux.RUN_COMMAND_ARGUMENTS",
-                new String[]{"-c", "printf 'TERMUX_BRIDGE_OK\\n'; printf 'user='; id -un; printf 'time='; date -Iseconds"});
+                new String[]{"-c",
+                        "printf 'TERMUX_BRIDGE_OK\\n'; printf 'user='; id -un; printf 'time='; date -Iseconds"});
         command.putExtra("com.termux.RUN_COMMAND_BACKGROUND", true);
         command.putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", resultPendingIntent);
         command.putExtra("com.termux.RUN_COMMAND_COMMAND_LABEL", "Bridge diagnostic");
-        command.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION", "Runs a fixed read-only diagnostic.");
+        command.putExtra("com.termux.RUN_COMMAND_COMMAND_DESCRIPTION",
+                "Runs a fixed read-only diagnostic.");
+
         try {
             context.startService(command);
         } catch (Exception e) {
             Consumer<String> saved = CALLBACKS.remove(requestId);
-            if (saved != null) saved.accept("Could not start Termux command service: " + e);
+            if (saved != null) {
+                saved.accept("Could not start Termux command service: " + e);
+            }
         }
     }
 
-    @Override public void onReceive(Context context, Intent intent) {
+    @Override
+    public void onReceive(Context context, Intent intent) {
         String requestId = intent.getStringExtra("requestId");
-        Consumer<String> callback = requestId == null ? null : CALLBACKS.remove(requestId);
+        Consumer<String> callback =
+                requestId == null ? null : CALLBACKS.remove(requestId);
         if (callback == null) return;
 
         Bundle extras = intent.getExtras();
@@ -68,9 +80,14 @@ public class CommandResultReceiver extends BroadcastReceiver {
             callback.accept("Termux returned no result bundle.");
             return;
         }
-        // Termux returns command results inside TERMUX_SERVICE.EXTRA_PLUGIN_RESULT_BUNDLE.
-        // Keep the documented key first; inspect Bundle extras as a compatibility fallback.
-        Bundle result = extras.getBundle("result");
+
+        Bundle result =
+                extras.getBundle("com.termux.app.notify.plugin_result_bundle");
+
+        if (!looksLikeResult(result)) {
+            result = extras.getBundle("result");
+        }
+
         if (!looksLikeResult(result)) {
             for (String key : extras.keySet()) {
                 Object value = extras.get(key);
@@ -80,9 +97,10 @@ public class CommandResultReceiver extends BroadcastReceiver {
                 }
             }
         }
+
         if (!looksLikeResult(result)) {
-            callback.accept("Termux callback received, but no recognizable result bundle was found. "
-                    + "Extra keys: " + extras.keySet());
+            callback.accept("Termux callback received, but no recognizable result bundle "
+                    + "was found. Extra keys: " + extras.keySet());
             return;
         }
 
@@ -91,10 +109,13 @@ public class CommandResultReceiver extends BroadcastReceiver {
         int exit = result.getInt("exitCode", -999);
         int errCode = result.getInt("err", 0);
         String err = result.getString("errmsg", "");
-        String text = "Exit code: " + exit + "\nService error code: " + errCode
+
+        String text = "Exit code: " + exit
+                + "\nService error code: " + errCode
                 + "\n\nSTDOUT:\n" + stdout
                 + "\n\nSTDERR:\n" + stderr
                 + (err.isEmpty() ? "" : "\n\nService error:\n" + err);
+
         callback.accept(text);
     }
 
