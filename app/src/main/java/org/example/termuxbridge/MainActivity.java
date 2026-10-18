@@ -53,8 +53,12 @@ public class MainActivity extends Activity {
         Button run = new Button(this);
         run.setText("Run fixed Termux diagnostic");
         run.setOnClickListener(v -> {
+            run.setEnabled(false);
             status.setText("Request sent to Termux. Waiting for result…");
-            CommandResultReceiver.execute(this, result -> status.setText(result));
+            CommandResultReceiver.execute(this, result -> run.post(() -> {
+                status.setText(result);
+                run.setEnabled(true);
+            }));
         });
         root.addView(run, new LinearLayout.LayoutParams(-1, -2));
 
