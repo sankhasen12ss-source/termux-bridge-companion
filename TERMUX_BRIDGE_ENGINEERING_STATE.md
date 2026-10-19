@@ -275,3 +275,19 @@ You are continuing work on the Termux Bridge Companion project. Read this engine
 **Latest blocker:** Termux closed before the final post-merge source check. Push and build remain unverified.
 
 Start by asking the user to reopen Termux and run the read-only recovery block in Section 6. Inspect its output. If it confirms `2a06fe6`, the merge is clean, and no unexpected changes are present, run the source checks, then push normally and verify the remote commit ID. Do not force-push or reset. After the push, verify GitHub Actions builds the merged commit; then test the installed APK's fixed diagnostic. The ultimate ChatGPT-to-Termux workflow is not implemented yet; follow the staged plan in Section 7, prioritizing explicit user consent and constrained operations. Preserve all backups and avoid touching the separate Route 1 tunnel/API project.
+
+## 2026-10-19 — Installed APK diagnostic acceptance
+
+- GitHub Actions build for commit `bfb5b18` completed successfully.
+- Installed APK launched the fixed Termux diagnostic successfully on the OnePlus Nord running Android 16 (API 36).
+- Termux required the Android `RUN_COMMAND` permission and `allow-external-apps=true` in `~/.termux/termux.properties`; both prerequisites were addressed.
+- Verified diagnostic output:
+  - `TERMUX_BRIDGE_OK`
+  - `user=u0_a453`
+  - Timestamp: `2026-10-19T07:54:54+05:30`
+  - Exit code: `0`
+  - Standard error: empty
+- The app received and displayed the command result. Service error code was `-1`, despite the successful command exit and expected output.
+- Stage A fixed-diagnostic device test: PASS.
+- Remaining limitations: automatic ChatGPT message capture, arbitrary command execution, and automatic return of results to the same ChatGPT conversation are not implemented.
+- Next stage: investigate an explicit, user-triggered Android share handoff. Preserve the fixed-command safety boundary.
