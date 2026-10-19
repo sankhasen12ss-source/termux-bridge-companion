@@ -50,6 +50,12 @@ public class MainActivity extends Activity {
         payload.setTextIsSelectable(true);
         root.addView(payload, new LinearLayout.LayoutParams(-1, -2));
 
+        Button copy = new Button(this);
+        copy.setText("Copy received text");
+        copy.setEnabled(!sharedText.isEmpty());
+        copy.setOnClickListener(v -> { android.content.ClipboardManager c = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE); c.setPrimaryClip(android.content.ClipData.newPlainText("Received text", sharedText)); status.setText("Received text copied to clipboard."); });
+        root.addView(copy, new LinearLayout.LayoutParams(-1, -2));
+
         Button run = new Button(this);
         run.setText("Run fixed Termux diagnostic");
         run.setOnClickListener(v -> {
