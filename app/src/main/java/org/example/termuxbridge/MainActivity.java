@@ -56,6 +56,19 @@ public class MainActivity extends Activity {
         copy.setOnClickListener(v -> { android.content.ClipboardManager c = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE); c.setPrimaryClip(android.content.ClipData.newPlainText("Received text", sharedText)); status.setText("Received text copied to clipboard."); });
         root.addView(copy, new LinearLayout.LayoutParams(-1, -2));
 
+        Button openLink = new Button(this);
+        openLink.setText("Open shared ChatGPT link");
+        boolean isShareLink = sharedText.trim().matches("https://chatgpt\\.com/share/[^\\s]+");
+        openLink.setEnabled(isShareLink);
+        openLink.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(sharedText.trim())));
+            } catch (android.content.ActivityNotFoundException e) {
+                status.setText("No browser available to open the shared link.");
+            }
+        });
+        root.addView(openLink, new LinearLayout.LayoutParams(-1, -2));
+
         Button run = new Button(this);
         run.setText("Run fixed Termux diagnostic");
         run.setOnClickListener(v -> {
